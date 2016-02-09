@@ -37,6 +37,7 @@ type StoryBot = RWST ConfigBot () StateBot (LoggingT IO)
 
 type StoryFlowM = FreeT StoryFlow StoryBot
 
+-- | Configuracion inicial del bot
 data ConfigBot = ConfigBot
   { token       :: Token
   , storyFormat :: Text }
@@ -46,12 +47,14 @@ data StateBot = StateBot
   , connections  :: IM.IntMap (StoryFlowM ()) -- ^ hash chat_id, current flow
   }
 
+-- | TODO: No se usa aún -> añadirlo al StateBot
 data Story = Story
   { author  :: !String
   , title   :: !String
   , content :: StoryFlowM ()
   }
 
+-- | Diferentes entradas de usuario TODO: Nombre chungo
 data Options
   = Choice Int
   | Start
@@ -60,7 +63,6 @@ data Options
   deriving (Eq,Show)
 
 -- | Representa el flujo de una historia con multiples elecciones
--- s es la cadena de texto a mostrar y op son la opcion a obtener
 data StoryFlow next
   = StoryFlow Text (Options -> next)
   | Telling Text next
@@ -74,7 +76,7 @@ storyFlow :: (MonadFree StoryFlow m) => Text -> m Options
 telling :: (MonadFree StoryFlow m) => Text -> m ()
 endStory :: (MonadFree StoryFlow m) => m a
 
-
+-- Simplemente esta mal pensado
 step :: Message -> Maybe Options -> StoryFlowM () -> StoryBot (Maybe (StoryFlowM ()))
 step msg op sf = do
   cfg <- ask
@@ -90,6 +92,7 @@ step msg op sf = do
       EndStory -> return $ Just sf
     Pure () -> return Nothing
 
+-- Bastante mal quizas
 sendStory :: Message -> StoryFlowM () -> StoryBot (StoryFlowM ())
 sendStory msg sf = do
   cfg <- ask
@@ -124,7 +127,7 @@ start = do
     Choice 3 -> telling "Editando historia"
     Start -> start
     Error s -> telling ("Esta opcion no esta disponible: " `T.append` s) >> start
-    Choice n -> telling ("Esa no es una una posible respuesta" `T.append` T.pack (show n)) >> start
+    Choice n -> telling ("Esa no es una posible respuesta" `T.append` T.pack (show n)) >> start
 
 choiceStory :: StoryFlowM ()
 choiceStory = do
